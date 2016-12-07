@@ -6,18 +6,18 @@ import java.util.*;
 /**
  * Implements an inverted index as a Hashtable from words to PostingsLists.
  */
-public class HashedIndex extends genql.Index {
+public class HashedIndex extends Index {
 
     /**
      * The index as a hashtable.
      */
-    public HashMap<String, genql.PostingsList> index = new HashMap<String, genql.PostingsList>();
+    public HashMap<String, PostingsList> index = new HashMap<String, PostingsList>();
 
     /**
      * Tree containing the 10% most popular postingslist sorted by popularity
      */
-    private TreeSet<genql.PostingsList> popularitySet = new TreeSet<genql.PostingsList>();
-    private Iterator<genql.PostingsList> popularityIterator;
+    private TreeSet<PostingsList> popularitySet = new TreeSet<PostingsList>();
+    private Iterator<PostingsList> popularityIterator;
     private int popularityIteratorIdx = -1;
     private int docElapsed = 0;
     private int doc_counter = 0;
@@ -99,9 +99,9 @@ public class HashedIndex extends genql.Index {
      * Inserts this token in the index.
      */
     public void insert(String token, int docID, int offset) {
-        genql.PostingsList ps = index.get(token);
+        PostingsList ps = index.get(token);
         if (ps == null) {
-            ps = new genql.PostingsList(token);
+            ps = new PostingsList(token);
             index.put(token, ps);
             popularitySet.add(ps);
         } else if (!GLOBAL_CACHE) {
@@ -151,7 +151,7 @@ public class HashedIndex extends genql.Index {
      * Returns the postings for a specific term, or null if the term is not in
      * the index.
      */
-    public genql.PostingsList getPostings(String token) {
+    public PostingsList getPostings(String token) {
         return index.get(token);
     }
 
@@ -201,17 +201,17 @@ public class HashedIndex extends genql.Index {
         return positions;
     }
 
-    private genql.PostingsList getIntersectionPostings(List<String> tokens, int queryType) {
-        genql.PostingsList result = new genql.PostingsList();
+    private PostingsList getIntersectionPostings(List<String> tokens, int queryType) {
+        PostingsList result = new PostingsList();
         // For each token, a list of documents (a document is a PostingsEntry containing a list of offsets)
-        LinkedList<ListIterator<genql.PostingsEntry>> docsIterators = new LinkedList<ListIterator<genql.PostingsEntry>>();
-        LinkedList<genql.PostingsList> tokensPostings = new LinkedList<genql.PostingsList>();
+        LinkedList<ListIterator<PostingsEntry>> docsIterators = new LinkedList<ListIterator<PostingsEntry>>();
+        LinkedList<PostingsList> tokensPostings = new LinkedList<PostingsList>();
         int maxDocID, nlists = 0, tmp;
         int[] wordFrequencies = new int[tokens.size()];
 
         // Postings retrieval
         for (String t : tokens) {
-            genql.PostingsList postings = getPostings(t);
+            PostingsList postings = getPostings(t);
             if (postings == null) {
                 return null;
             }
@@ -220,14 +220,14 @@ public class HashedIndex extends genql.Index {
         }
 
         // We start with the smallest list (heuristic)
-        if (queryType == genql.Index.INTERSECTION_QUERY) {
-            Collections.sort(tokensPostings, new Comparator<genql.PostingsList>() {
-                public int compare(genql.PostingsList a1, genql.PostingsList a2) {
+        if (queryType == Index.INTERSECTION_QUERY) {
+            Collections.sort(tokensPostings, new Comparator<PostingsList>() {
+                public int compare(PostingsList a1, PostingsList a2) {
                     return a2.size() - a1.size(); // assuming you want biggest to smallest
                 }
             });
             docsIterators.clear();
-            for (genql.PostingsList postings : tokensPostings) {
+            for (PostingsList postings : tokensPostings) {
                 docsIterators.add(postings.postingsEntriesIterator());
             }
         }
@@ -236,7 +236,7 @@ public class HashedIndex extends genql.Index {
         while (true) {
             // We find the list having the bigger docID among the current iterators
             maxDocID = Integer.MIN_VALUE;
-            for (ListIterator<genql.PostingsEntry> iter : docsIterators) {
+            for (ListIterator<PostingsEntry> iter : docsIterators) {
                 if (!iter.hasNext()) {
                     return result;
                 }
@@ -255,14 +255,14 @@ public class HashedIndex extends genql.Index {
             // Every iterator point on the same document ID
             if (nlists == tokens.size()) {
                 // Intersection query
-                if (queryType == genql.Index.INTERSECTION_QUERY) {
+                if (queryType == Index.INTERSECTION_QUERY) {
                     result.addToken(maxDocID, -1, null);
 
                     // Phrase query
-                } else if (queryType == genql.Index.PHRASE_QUERY) {
+                } else if (queryType == Index.PHRASE_QUERY) {
                     LinkedList<ListIterator<Integer>> offsetIterators = new LinkedList<ListIterator<Integer>>();
                     // For each documents iterator (one per token)
-                    for (ListIterator<genql.PostingsEntry> iter : docsIterators) {
+                    for (ListIterator<PostingsEntry> iter : docsIterators) {
                         // Add to the list an iterator on the list of offset for a given token and document
                         offsetIterators.add(iter.previous().listIterator());
                         iter.next();
@@ -277,7 +277,7 @@ public class HashedIndex extends genql.Index {
                 }
             } else {
                 // For every other list
-                for (ListIterator<genql.PostingsEntry> iter : docsIterators) {
+                for (ListIterator<PostingsEntry> iter : docsIterators) {
                     if (iter.previous().docID != maxDocID) {
                         iter.next();
                         // We iterate until we reach a docID higher or equal, or the end of the list
@@ -300,7 +300,7 @@ public class HashedIndex extends genql.Index {
     /**
      * Searches the index for postings matching the query.
      */
-    public genql.PostingsList search(genql.Query query, int queryType, int rankingType, int structureType) {
+    public PostingsList search(Query query, int queryType, int rankingType, int structureType) {
         long startTime = System.nanoTime();
 
         if (!loadTokens(query.terms)) {
@@ -308,12 +308,12 @@ public class HashedIndex extends genql.Index {
             return null;
         }
 
-        genql.PostingsList ps = null;
+        PostingsList ps = null;
 
         if (query.size() > 0) {
-            if (queryType == genql.Index.INTERSECTION_QUERY || queryType == genql.Index.PHRASE_QUERY) {
+            if (queryType == Index.INTERSECTION_QUERY || queryType == Index.PHRASE_QUERY) {
                 ps = getIntersectionPostings(query.terms, queryType);
-            } else if (queryType == genql.Index.RANKED_QUERY) {
+            } else if (queryType == Index.RANKED_QUERY) {
                 ps = getRankedPostings(query.terms, rankingType, query);
             }
         } else {
@@ -327,7 +327,7 @@ public class HashedIndex extends genql.Index {
         if (CACHE && requests_counter == REQUESTS_BEFORE_CLEANING) {
             requests_counter = 0;
 
-            Iterator<genql.PostingsList> iter = popularitySet.descendingIterator();
+            Iterator<PostingsList> iter = popularitySet.descendingIterator();
             int i = 0, threshold = word_threshold;
 
             while (i < threshold && iter.hasNext()) {
@@ -336,7 +336,7 @@ public class HashedIndex extends genql.Index {
             }
             i = 0;
             if (iter.hasNext()) {
-                genql.PostingsList tmp = iter.next();
+                PostingsList tmp = iter.next();
                 while (!tmp.postingsEntries.isEmpty() && iter.hasNext()) {
                     ++i;
                     tmp.postingsEntries.clear();
@@ -370,10 +370,10 @@ public class HashedIndex extends genql.Index {
         Double score;
         ArrayList<AbstractMap.SimpleEntry<Integer, Double>> array;
 
-        for (Map.Entry<String, genql.PostingsList> entry : index.entrySet()) {
+        for (Map.Entry<String, PostingsList> entry : index.entrySet()) {
             array = new ArrayList<AbstractMap.SimpleEntry<Integer, Double>>(entry.getValue().postingsEntries.size());
 
-            for (genql.PostingsEntry pe : entry.getValue().postingsEntries) {
+            for (PostingsEntry pe : entry.getValue().postingsEntries) {
                 Double tmp = docNorm.get(pe.docID);
                 if (tmp == null) {
                     tmp = 0.0;
@@ -386,7 +386,7 @@ public class HashedIndex extends genql.Index {
                 docNorm.put(pe.docID, tmp);
             }
 
-            Collections.sort(array, new Comparator<AbstractMap.SimpleEntry<Integer, Double>>() {
+            array.sort(new Comparator<AbstractMap.SimpleEntry<Integer, Double>>() {
                 public int compare(AbstractMap.SimpleEntry<Integer, Double> e1, AbstractMap.SimpleEntry<Integer, Double> e2) {
                     return Double.compare(e2.getValue(), e1.getValue()); // assuming you want biggest to smallest
                 }
@@ -407,7 +407,7 @@ public class HashedIndex extends genql.Index {
         System.out.println("Done");
     }
 
-    private genql.PostingsList getRankedPostings(List<String> tokens, int rankingType, genql.Query query) {
+    private PostingsList getRankedPostings(List<String> tokens, int rankingType, Query query) {
         class MutableInt {
 
             int value = 1; // note that we start at 1 since we're counting
@@ -423,25 +423,27 @@ public class HashedIndex extends genql.Index {
 
         int tokenIdx = 0;
         double tfidfScore, cos_sim;
-        genql.Vector queryVector = null;
-        HashMap<Integer, genql.Vector> docVectors = null;
-        genql.PostingsList ps;
-        genql.PostingsEntry pe;
-        TreeSet<genql.PostingsEntry> pagerankedDocs = null;
-        genql.PostingsEntry[] docArray;
+        Vector queryVector = null;
+        HashMap<Integer, Vector> docVectors = null;
+        PostingsList ps;
+        PostingsEntry pe;
+        TreeSet<PostingsEntry> pagerankedDocs = null;
+        PostingsEntry[] docArray;
         HashMap<Integer, MutableInt> docValidity = null;
         /*
-         Set<String> uniqueTokens = new TreeSet<String>();
-         uniqueTokens.addAll(tokens);
-         tokens.clear();
-         tokens.addAll(uniqueTokens);
+        Set<String> uniqueTokens = new TreeSet<String>();
+        uniqueTokens.addAll(tokens);
+        tokens.clear();
+        tokens.addAll(uniqueTokens);
          */
-        // Prepare the set structure to guarantee that every document ID in the set is unique
-        pagerankedDocs = new TreeSet<genql.PostingsEntry>(new Comparator<genql.PostingsEntry>() {
-            public int compare(genql.PostingsEntry a1, genql.PostingsEntry a2) {
-                return a2.docID - a1.docID; // assuming you want biggest to smallest
-            }
-        });
+        // Query vector
+        if (query.vector == null) {
+            queryVector = Vector.ones(tokens.size());
+            queryVector.normalize();
+        } else {
+            queryVector = query.vector;
+        }
+        docVectors = new HashMap<Integer, Vector>();
 
         //Determine for each document whether it contains enough words from the query or not
         int threshold = Math.min(tokens.size(), HashedIndex.RANKED_TERMS);
@@ -468,24 +470,45 @@ public class HashedIndex extends genql.Index {
             for (AbstractMap.SimpleEntry<Integer, Double> entry : scores) {
                 // Ignore the document if it does not contain enough words from the query
                 if (docValidity == null || docValidity.get(entry.getKey()).value >= threshold) {
+                    Vector v = docVectors.get(entry.getKey());
+                    if (v == null) {
+                        v = new Vector(tokens.size());
+                        docVectors.put(entry.getKey(), v);
+                    }
 
-                    pe = new genql.PostingsEntry(entry.getKey());
-                    // Get the document pagerank
-                    pe.score = 0.1; // TODO 
-                    // Add the current document if it does not exist to the list of documents
-                    pagerankedDocs.add(pe);
+                    // Update the TF-IDF score of one term for one document
+                    tfidfScore = entry.getValue();
+                    v.set(tokenIdx, tfidfScore);
 
                 }
             }
             ++tokenIdx;
         }
 
-        docArray = pagerankedDocs.toArray(new genql.PostingsEntry[pagerankedDocs.size()]);
+        // Compute the cosine similarity score of each document
+        docArray = new PostingsEntry[docVectors.size()];
+        int i = 0;
+        Iterator<Map.Entry<Integer, Vector>> iter = docVectors.entrySet().iterator();
+
+        while (iter.hasNext()) {
+            Map.Entry pair = iter.next();
+            pe = new PostingsEntry((Integer) pair.getKey());
+
+            ((Vector) pair.getValue()).divide(docNorm.get((Integer) pair.getKey()));
+
+            cos_sim = queryVector.cosineSimilarity((Vector) pair.getValue());
+
+            if (rankingType == Index.TF_IDF) {
+                pe.score = cos_sim;
+            }
+            docArray[i] = pe;
+            ++i;
+        }
 
         // Sort the results
         Arrays.sort(docArray);
-        ps = new genql.PostingsList();
-        for (genql.PostingsEntry tmp : docArray) {
+        ps = new PostingsList();
+        for (PostingsEntry tmp : docArray) {
             ps.postingsEntries.add(tmp);
         }
 
@@ -516,21 +539,21 @@ public class HashedIndex extends genql.Index {
         }
     }
 
-    private void updatePostingsFile(genql.PostingsList ps) {
+    private void updatePostingsFile(PostingsList ps) {
         File f = new File(CACHE_PATH + ps.token);
         // Merge the existing postings list with the one on the disk
         if (f.exists()) {
-            genql.PostingsList tmp = new genql.PostingsList();
+            PostingsList tmp = new PostingsList();
             try {
                 // Read the existing postings list from the disk
                 ObjectInputStream input = new ObjectInputStream(new FileInputStream(f));
-                tmp.postingsEntries = (LinkedList<genql.PostingsEntry>) input.readObject();
+                tmp.postingsEntries = (LinkedList<PostingsEntry>) input.readObject();
                 input.close();
             } catch (Exception e) {
                 e.printStackTrace();
             }
             // Merge the two postings list
-            for (genql.PostingsEntry pe : ps.postingsEntries) {
+            for (PostingsEntry pe : ps.postingsEntries) {
                 tmp.addToken(pe.docID, -1, pe);
             }
             ps.postingsEntries = tmp.postingsEntries;
@@ -548,7 +571,7 @@ public class HashedIndex extends genql.Index {
 
     private void indexingThresholdReached() {
         updateWordThreshold();
-        genql.PostingsList ps = getNextUnpopularPostingsList();
+        PostingsList ps = getNextUnpopularPostingsList();
         while (ps != null && !ps.postingsEntries.isEmpty()) {
             updatePostingsFile(ps);
             // Clear memory
@@ -608,7 +631,7 @@ public class HashedIndex extends genql.Index {
     // Insert in the map the words required by the query and update their popularity
     private boolean loadTokens(LinkedList<String> tokens) {
         for (String token : tokens) {
-            genql.PostingsList ps = index.get(token);
+            PostingsList ps = index.get(token);
 
             if (ps == null) {
                 return false;
@@ -618,7 +641,7 @@ public class HashedIndex extends genql.Index {
                 try {
                     ObjectInputStream input = new ObjectInputStream(
                             new FileInputStream(new File(CACHE_PATH + ps.token)));
-                    ps.postingsEntries = (LinkedList<genql.PostingsEntry>) input.readObject();
+                    ps.postingsEntries = (LinkedList<PostingsEntry>) input.readObject();
                     input.close();
                 } catch (Exception e) {
                     //The file does not exist
@@ -645,7 +668,6 @@ public class HashedIndex extends genql.Index {
         System.out.println("Cache cleaned");
     }
 
-    @Override
     public boolean importIndex() {
 
         if (!CACHE) {
@@ -667,7 +689,7 @@ public class HashedIndex extends genql.Index {
         importDocumentsLength();
         importPopularitySet();
 
-        Iterator<genql.PostingsList> iter;
+        Iterator<PostingsList> iter;
         int i = 0;
 
         if (popularitySet.descendingIterator().next().getPopularity() == 0) {
@@ -678,11 +700,11 @@ public class HashedIndex extends genql.Index {
 
         // Import the postings list of the most popular words
         while (i < word_threshold && iter.hasNext()) {
-            genql.PostingsList ps = iter.next();
+            PostingsList ps = iter.next();
             try {
                 ObjectInputStream input = new ObjectInputStream(
                         new FileInputStream(new File(CACHE_PATH + ps.token)));
-                ps.postingsEntries = (LinkedList<genql.PostingsEntry>) input.readObject();
+                ps.postingsEntries = (LinkedList<PostingsEntry>) input.readObject();
                 input.close();
             } catch (Exception e) {
                 cleanCache();
@@ -694,8 +716,8 @@ public class HashedIndex extends genql.Index {
 
         // Add the other words in the map with empty postings lists
         while (iter.hasNext()) {
-            genql.PostingsList ps = iter.next();
-            ps.postingsEntries = new LinkedList<genql.PostingsEntry>();
+            PostingsList ps = iter.next();
+            ps.postingsEntries = new LinkedList<PostingsEntry>();
             index.put(ps.token, ps);
         }
 
@@ -711,7 +733,7 @@ public class HashedIndex extends genql.Index {
         try {
             ObjectInputStream input = new ObjectInputStream(
                     new FileInputStream(new File(CACHE_PATH + POPULARITY_FILE_NAME)));
-            popularitySet = (TreeSet<genql.PostingsList>) input.readObject();
+            popularitySet = (TreeSet<PostingsList>) input.readObject();
             input.close();
             updateWordThreshold();
 
@@ -728,7 +750,7 @@ public class HashedIndex extends genql.Index {
         try {
             ObjectInputStream input = new ObjectInputStream(
                     new FileInputStream(new File(CACHE_PATH + INDEX_FILE_NAME)));
-            index = (HashMap<String, genql.PostingsList>) input.readObject();
+            index = (HashMap<String, PostingsList>) input.readObject();
             input.close();
         } catch (Exception e) {
             return false;
@@ -761,8 +783,8 @@ public class HashedIndex extends genql.Index {
     }
 
     private void updateEntryScores() {
-        for (genql.PostingsList ps : index.values()) {
-            for (genql.PostingsEntry pe : ps.postingsEntries) {
+        for (PostingsList ps : index.values()) {
+            for (PostingsEntry pe : ps.postingsEntries) {
                 pe.score /= super.docLengths.get("" + pe.docID);
             }
         }
@@ -784,11 +806,11 @@ public class HashedIndex extends genql.Index {
             return;
         }
 
-        Iterator<genql.PostingsList> iter = popularitySet.descendingIterator();
+        Iterator<PostingsList> iter = popularitySet.descendingIterator();
         int i = 1;
         updateWordThreshold();
 
-        genql.PostingsList ps = iter.next();
+        PostingsList ps = iter.next();
         ps.setPopularity(0);
         if (!ps.postingsEntries.isEmpty()) {
             updatePostingsFile(ps);
@@ -821,7 +843,7 @@ public class HashedIndex extends genql.Index {
     /**
      * Remove from the popularity tree the word having the least popularity
      */
-    private genql.PostingsList getNextUnpopularPostingsList() {
+    private PostingsList getNextUnpopularPostingsList() {
         if (popularityIteratorIdx == -1) {
             popularityIterator = popularitySet.iterator();
             popularityIteratorIdx = 0;
@@ -836,7 +858,7 @@ public class HashedIndex extends genql.Index {
             return null;
         }
 
-        genql.PostingsList pl = popularityIterator.next();
+        PostingsList pl = popularityIterator.next();
         while (pl.postingsEntries.isEmpty()) {
             ++popularityIteratorIdx;
             pl = popularityIterator.next();

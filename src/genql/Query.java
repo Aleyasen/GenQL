@@ -2,6 +2,17 @@ package genql;
 
 import java.util.*;
 
+class TermScore {
+
+    String term;
+    double score;
+
+    TermScore(String term, double score) {
+        this.term = term;
+        this.score = score;
+    }
+}
+
 public class Query {
 
     public LinkedList<String> terms = new LinkedList<String>();
@@ -30,6 +41,20 @@ public class Query {
         }
     }
 
+    public void refine(int topk) {
+        List<TermScore> ts = new ArrayList();
+        for (int i = 0; i < terms.size(); i++) {
+            ts.add(new TermScore(terms.get(i), vector.get(i)));
+        }
+        Collections.sort(ts, (a, b) -> a.score > b.score ? -1 : a.score == b.score ? 0 : 1);
+        terms = new LinkedList<String>();
+        vector = new Vector(topk);
+        for (int i = 0; i < topk; i++) {
+            terms.add(ts.get(i).term);
+            vector.set(i, ts.get(i).score);
+        }
+    }
+
     /**
      * Returns the number of terms
      */
@@ -53,6 +78,8 @@ public class Query {
      * updated to match the user preferences (Rocchio's algorithm)
      */
     public void relevanceFeedback(genql.PostingsList results, boolean[] docIsRelevant, genql.Indexer indexer) {
+        System.out.println("before Rocchio");
+        System.out.println(this);
         // results contain the ranked list from the current search
         // docIsRelevant contains the users feedback on which of the 10 first hits are relevant
         if (!(indexer.index instanceof genql.HashedIndex)) {
@@ -116,6 +143,24 @@ public class Query {
             ++i;
         }
         this.vector = new genql.Vector(array);
+
         this.vector.normalize();
+        System.out.println("after Rocchio");
+        System.out.println(this);
+        refine(10);
+        System.out.println("after Refine");
+        System.out.println(this);
+    }
+
+    public String toString() {
+        String str = "";
+        if (vector == null) {
+            return vector + "";
+        }
+        for (int i = 0; i < terms.size(); i++) {
+            str += terms.get(i) + ": " + vector.get(i) + "\n";
+        }
+        str += " SIZE: " + terms.size();
+        return str;
     }
 }

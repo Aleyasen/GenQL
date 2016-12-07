@@ -35,7 +35,7 @@ public class SearchGUI extends JFrame {
     /**
      * The query type (either intersection, phrase, or ranked).
      */
-    int queryType = Index.INTERSECTION_QUERY;
+    int queryType = Index.RANKED_QUERY;
 
     /**
      * The ranking type (tf-idf).
@@ -362,7 +362,7 @@ public class SearchGUI extends JFrame {
         SearchGUI s = new SearchGUI();
         s.createGUI();
 //        s.decodeArgs(args);
-        s.dirNames.add("data");
+        s.dirNames.add("data/sample");
         System.out.println("before index");
         s.index();
         System.out.println("after index");
