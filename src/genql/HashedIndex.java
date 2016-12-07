@@ -18,7 +18,6 @@ public class HashedIndex extends genql.Index {
      */
     private TreeSet<genql.PostingsList> popularitySet = new TreeSet<genql.PostingsList>();
     private Iterator<genql.PostingsList> popularityIterator;
-    private genql.PageRank pageranks;
     private int popularityIteratorIdx = -1;
     private int docElapsed = 0;
     private int doc_counter = 0;
@@ -363,8 +362,8 @@ public class HashedIndex extends genql.Index {
     }
 
     /* ----------------------------------------------- */
-    /*                    RANKING                      */
-    /* ----------------------------------------------- */
+ /*                    RANKING                      */
+ /* ----------------------------------------------- */
     private void computeDocumentNorms() {
         System.out.println("Computing document norms...");
         int i;
@@ -437,23 +436,12 @@ public class HashedIndex extends genql.Index {
          tokens.clear();
          tokens.addAll(uniqueTokens);
          */
-        if (rankingType != genql.Index.PAGERANK) {
-            // Query vector
-            if (query.vector == null) {
-                queryVector = genql.Vector.ones(tokens.size());
-                queryVector.normalize();
-            } else {
-                queryVector = query.vector;
+        // Prepare the set structure to guarantee that every document ID in the set is unique
+        pagerankedDocs = new TreeSet<genql.PostingsEntry>(new Comparator<genql.PostingsEntry>() {
+            public int compare(genql.PostingsEntry a1, genql.PostingsEntry a2) {
+                return a2.docID - a1.docID; // assuming you want biggest to smallest
             }
-            docVectors = new HashMap<Integer, genql.Vector>();
-        } else {
-            // Prepare the set structure to guarantee that every document ID in the set is unique
-            pagerankedDocs = new TreeSet<genql.PostingsEntry>(new Comparator<genql.PostingsEntry>() {
-                public int compare(genql.PostingsEntry a1, genql.PostingsEntry a2) {
-                    return a2.docID - a1.docID; // assuming you want biggest to smallest
-                }
-            });
-        }
+        });
 
         //Determine for each document whether it contains enough words from the query or not
         int threshold = Math.min(tokens.size(), HashedIndex.RANKED_TERMS);
@@ -480,53 +468,19 @@ public class HashedIndex extends genql.Index {
             for (AbstractMap.SimpleEntry<Integer, Double> entry : scores) {
                 // Ignore the document if it does not contain enough words from the query
                 if (docValidity == null || docValidity.get(entry.getKey()).value >= threshold) {
-                    if (rankingType != genql.Index.PAGERANK) {
-                        genql.Vector v = docVectors.get(entry.getKey());
-                        if (v == null) {
-                            v = new genql.Vector(tokens.size());
-                            docVectors.put(entry.getKey(), v);
-                        }
 
-                        // Update the TF-IDF score of one term for one document
-                        tfidfScore = entry.getValue();
-                        v.set(tokenIdx, tfidfScore);
-                    } else {
-                        pe = new genql.PostingsEntry(entry.getKey());
-                        // Get the document pagerank
-                        pe.score = pageranks.get("" + entry.getKey());
-                        // Add the current document if it does not exist to the list of documents
-                        pagerankedDocs.add(pe);
-                    }
+                    pe = new genql.PostingsEntry(entry.getKey());
+                    // Get the document pagerank
+                    pe.score = 0.1; // TODO 
+                    // Add the current document if it does not exist to the list of documents
+                    pagerankedDocs.add(pe);
+
                 }
             }
             ++tokenIdx;
         }
 
-        if (rankingType != genql.Index.PAGERANK) {
-            // Compute the cosine similarity score of each document
-            docArray = new genql.PostingsEntry[docVectors.size()];
-            int i = 0;
-            Iterator<Map.Entry<Integer, genql.Vector>> iter = docVectors.entrySet().iterator();
-
-            while (iter.hasNext()) {
-                Map.Entry pair = iter.next();
-                pe = new genql.PostingsEntry((Integer) pair.getKey());
-
-                ((genql.Vector) pair.getValue()).divide(docNorm.get((Integer) pair.getKey()));
-
-                cos_sim = queryVector.cosineSimilarity((genql.Vector) pair.getValue());
-
-                if (rankingType == genql.Index.TF_IDF) {
-                    pe.score = cos_sim;
-                } else if (rankingType == genql.Index.COMBINATION) {
-                    pe.score = cos_sim * TF_IDF_WEIGHT + pageranks.get("" + pe.docID) * PAGERANK_WEIGHT;
-                }
-                docArray[i] = pe;
-                ++i;
-            }
-        } else {
-            docArray = pagerankedDocs.toArray(new genql.PostingsEntry[pagerankedDocs.size()]);
-        }
+        docArray = pagerankedDocs.toArray(new genql.PostingsEntry[pagerankedDocs.size()]);
 
         // Sort the results
         Arrays.sort(docArray);
@@ -550,8 +504,8 @@ public class HashedIndex extends genql.Index {
 
 
     /* ----------------------------------------------- */
-    /*                     CACHE                       */
-    /* ----------------------------------------------- */
+ /*                     CACHE                       */
+ /* ----------------------------------------------- */
     public void nextDoc() {
         ++docElapsed;
         if (docElapsed == DOC_ELAPSED_THRESHOLD && CACHE && !GLOBAL_CACHE) {
@@ -691,12 +645,8 @@ public class HashedIndex extends genql.Index {
         System.out.println("Cache cleaned");
     }
 
+    @Override
     public boolean importIndex() {
-        this.pageranks = genql.PageRank.import_(CACHE_PATH + PAGERANKS_FILE_NAME);
-        if (this.pageranks == null) {
-            this.pageranks = new genql.PageRank();
-            genql.PageRank.export(this.pageranks, CACHE_PATH + PAGERANKS_FILE_NAME);
-        }
 
         if (!CACHE) {
             return false;

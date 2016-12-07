@@ -1,10 +1,12 @@
-
 package genql;
 
 import java.util.*;
 
-public class BigramIndex  extends genql.Index {
-    /** The index as a hashtable. */
+public class BigramIndex extends genql.Index {
+
+    /**
+     * The index as a hashtable.
+     */
     private HashMap<String, HashMap<String, genql.PostingsList>> index = new HashMap<String, HashMap<String, genql.PostingsList>>();
     private String previous = null;
     private int currentDocID = -1;
@@ -12,31 +14,30 @@ public class BigramIndex  extends genql.Index {
     private int nbigrams = 0;
 
     /**
-     *  Inserts this token in the index, linked to the previous word (bigram)
+     * Inserts this token in the index, linked to the previous word (bigram)
      */
-    public void insert( String token, int docID, int offset ) {
+    public void insert(String token, int docID, int offset) {
 
         HashMap<String, genql.PostingsList> map;
 
-        if(currentDocID != docID) {
+        if (currentDocID != docID) {
             previous = null;
             currentDocID = docID;
         }
 
-        if(previous == null) {
+        if (previous == null) {
             previous = token;
             return;
         }
 
-
         map = index.get(previous);
-        if(map == null) {
+        if (map == null) {
             map = new HashMap<String, genql.PostingsList>();
             index.put(previous, map);
         }
 
         genql.PostingsList ps = map.get(token);
-        if(ps == null) {
+        if (ps == null) {
             ps = new genql.PostingsList(token);
             map.put(token, ps);
             ++nbigrams;
@@ -47,29 +48,29 @@ public class BigramIndex  extends genql.Index {
     }
 
     /**
-     *  Returns all the words in the index.
+     * Returns all the words in the index.
      */
     public Iterator<String> getDictionary() {
         return index.keySet().iterator();
     }
 
     /**
-     *  Returns the postings for a specific term, or null
-     *  if the term is not in the index.
+     * Returns the postings for a specific term, or null if the term is not in
+     * the index.
      */
-    public genql.PostingsList getPostings( String token1, String token2 ) {
+    public genql.PostingsList getPostings(String token1, String token2) {
         HashMap<String, genql.PostingsList> map = index.get(token1);
-        if(map != null) {
+        if (map != null) {
             return map.get(token2);
         }
         return null;
     }
 
-    public genql.PostingsList search( genql.Query query, int queryType, int rankingType, int structureType ) {
+    public genql.PostingsList search(genql.Query query, int queryType, int rankingType, int structureType) {
         genql.PostingsList ps = new genql.PostingsList();
         LinkedList<String> tokens = query.terms;
 
-        if(queryType ==  genql.Index.RANKED_QUERY && rankingType == genql.Index.TF_IDF && structureType == genql.Index.BIGRAM) {
+        if (queryType == genql.Index.RANKED_QUERY && rankingType == genql.Index.TF_IDF && structureType == genql.Index.BIGRAM) {
             int tokenIdx = 0;
             double tfidfScore, cos_sim;
             genql.Vector queryVector = null;
@@ -80,8 +81,8 @@ public class BigramIndex  extends genql.Index {
 
             //TF-IDF QUERY
             // Query vector
-            if(query.vector == null) {
-                queryVector = genql.Vector.ones(tokens.size()-1);
+            if (query.vector == null) {
+                queryVector = genql.Vector.ones(tokens.size() - 1);
                 queryVector.normalize();
             } else {
                 queryVector = query.vector;
@@ -91,18 +92,18 @@ public class BigramIndex  extends genql.Index {
             // RANKED QUERY
             // Compute the TF-IDF vectors for each document
             String previousTk = null;
-            for(String token : tokens) {
-                if(previousTk == null) {
+            for (String token : tokens) {
+                if (previousTk == null) {
                     previousTk = token;
                     continue;
                 }
 
                 genql.PostingsList tokenPostings = getPostings(previousTk, token);
-                if(tokenPostings != null) {
+                if (tokenPostings != null) {
                     for (genql.PostingsEntry entry : tokenPostings.postingsEntries) {
                         genql.Vector v = docVectors.get(entry.docID);
                         if (v == null) {
-                            v = new genql.Vector(tokens.size()-1);
+                            v = new genql.Vector(tokens.size() - 1);
                             docVectors.put(entry.docID, v);
                         }
 
@@ -136,7 +137,7 @@ public class BigramIndex  extends genql.Index {
 
             // Sort the results
             Arrays.sort(docArray);
-            for(genql.PostingsEntry tmp : docArray) {
+            for (genql.PostingsEntry tmp : docArray) {
                 ps.postingsEntries.add(tmp);
             }
         }
@@ -148,8 +149,11 @@ public class BigramIndex  extends genql.Index {
         computeDocumentNorms();
     }
 
-    public void cleanup() {}private void updateEntryScores() {
-        for(HashMap<String, genql.PostingsList> map : index.values()) {
+    public void cleanup() {
+    }
+
+    private void updateEntryScores() {
+        for (HashMap<String, genql.PostingsList> map : index.values()) {
             for (genql.PostingsList ps : map.values()) {
                 for (genql.PostingsEntry pe : ps.postingsEntries) {
                     pe.score /= docLengths.get("" + pe.docID);
@@ -160,7 +164,7 @@ public class BigramIndex  extends genql.Index {
 
     private void computeDocumentNorms() {
         System.out.println("Computing document norms...");
-        for(HashMap<String, genql.PostingsList> map : index.values()) {
+        for (HashMap<String, genql.PostingsList> map : index.values()) {
             for (genql.PostingsList ps2 : map.values()) {
                 for (genql.PostingsEntry pe : ps2.postingsEntries) {
                     Double score = docNorm.get(pe.docID);
@@ -175,7 +179,14 @@ public class BigramIndex  extends genql.Index {
         System.out.println("Done");
     }
 
-    public genql.PostingsList getPostings( String token ) { return null;}
-    public void nextDoc() {}
-    public boolean importIndex() {return false;}
+    public genql.PostingsList getPostings(String token) {
+        return null;
+    }
+
+    public void nextDoc() {
+    }
+
+    public boolean importIndex() {
+        return false;
+    }
 }

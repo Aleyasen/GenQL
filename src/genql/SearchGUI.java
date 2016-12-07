@@ -38,7 +38,7 @@ public class SearchGUI extends JFrame {
     int queryType = Index.INTERSECTION_QUERY;
 
     /**
-     * The ranking type (either tf-idf, pagerank, or combination).
+     * The ranking type (tf-idf).
      */
     int rankingType = Index.TF_IDF;
 
@@ -55,15 +55,10 @@ public class SearchGUI extends JFrame {
     /**
      * Directory from which the code is compiled and run.
      */
-    public static final String homeDir = "/media/deeper/Data/Data/Documents/KTH/Assignments/information-retrieval/search-engine";
+    public static final String homeDir = "";
 
-
-    /*
-     *   The nice logotype
-     *   Generated at http://neswork.com/logo-generator/google-font
-     */
-    static final String LOGOPIC = homeDir + "/pics/IRfifteen.jpg";
-    static final String BLANKPIC = homeDir + "/pics/blank.jpg";
+    static final String LOGOPIC = homeDir + "pic1";
+    static final String BLANKPIC = homeDir + "pic2";
 
 
     /*
@@ -85,8 +80,6 @@ public class SearchGUI extends JFrame {
     JRadioButtonMenuItem phraseItem = new JRadioButtonMenuItem("Phrase query");
     JRadioButtonMenuItem rankedItem = new JRadioButtonMenuItem("Ranked retrieval");
     JRadioButtonMenuItem tfidfItem = new JRadioButtonMenuItem("tf-idf");
-    JRadioButtonMenuItem pagerankItem = new JRadioButtonMenuItem("PageRank");
-    JRadioButtonMenuItem combinationItem = new JRadioButtonMenuItem("Combination");
     JRadioButtonMenuItem unigramItem = new JRadioButtonMenuItem("Unigram");
     JRadioButtonMenuItem bigramItem = new JRadioButtonMenuItem("Bigram");
     JRadioButtonMenuItem subphraseItem = new JRadioButtonMenuItem("Subphrase");
@@ -99,7 +92,7 @@ public class SearchGUI extends JFrame {
 
 
     /* ----------------------------------------------- */
-    /*
+ /*
      *   Create the GUI.
      */
     private void createGUI() {
@@ -120,8 +113,6 @@ public class SearchGUI extends JFrame {
         optionsMenu.add(phraseItem);
         optionsMenu.add(rankedItem);
         rankingMenu.add(tfidfItem);
-        rankingMenu.add(pagerankItem);
-        rankingMenu.add(combinationItem);
         structureMenu.add(unigramItem);
         structureMenu.add(bigramItem);
         structureMenu.add(subphraseItem);
@@ -129,8 +120,6 @@ public class SearchGUI extends JFrame {
         queries.add(phraseItem);
         queries.add(rankedItem);
         ranking.add(tfidfItem);
-        ranking.add(pagerankItem);
-        ranking.add(combinationItem);
         structure.add(unigramItem);
         structure.add(bigramItem);
         structure.add(subphraseItem);
@@ -169,7 +158,7 @@ public class SearchGUI extends JFrame {
                 // Normalize the search string and turn it into a Query
                 String queryString = SimpleTokenizer.normalize(queryWindow.getText());
                 query = new Query(queryString);
-		    // Search and print results. Access to the index is synchronized since
+                // Search and print results. Access to the index is synchronized since
                 // we don't want to search at the same time we're indexing new files
                 // (this might corrupt the index).
                 synchronized (indexLock) {
@@ -220,7 +209,7 @@ public class SearchGUI extends JFrame {
                     // Expand the current search query with the documents marked as relevant
                     query.relevanceFeedback(results, docIsRelevant, indexer);
 
-			// Perform a new search with the weighted and expanded query. Access to the index is
+                    // Perform a new search with the weighted and expanded query. Access to the index is
                     // synchronized since we don't want to search at the same time we're indexing new files
                     // (this might corrupt the index).
                     synchronized (indexLock) {
@@ -295,20 +284,6 @@ public class SearchGUI extends JFrame {
         };
         tfidfItem.addActionListener(setTfidfRanking);
 
-        Action setPagerankRanking = new AbstractAction() {
-            public void actionPerformed(ActionEvent e) {
-                rankingType = Index.PAGERANK;
-            }
-        };
-        pagerankItem.addActionListener(setPagerankRanking);
-
-        Action setCombinationRanking = new AbstractAction() {
-            public void actionPerformed(ActionEvent e) {
-                rankingType = Index.COMBINATION;
-            }
-        };
-        combinationItem.addActionListener(setCombinationRanking);
-
         Action setUnigramStructure = new AbstractAction() {
             public void actionPerformed(ActionEvent e) {
                 structureType = Index.UNIGRAM;
@@ -343,6 +318,7 @@ public class SearchGUI extends JFrame {
             resultWindow.setText("\n  Importing index, please wait...");
             if (!indexer.index.importIndex()) {
                 resultWindow.setText("\n  Indexing, please wait...");
+                System.out.println(dirNames);
                 for (int i = 0; i < dirNames.size(); i++) {
                     File dokDir = new File(dirNames.get(i));
                     indexer.processFiles(dokDir);
@@ -385,8 +361,11 @@ public class SearchGUI extends JFrame {
     public static void main(String[] args) {
         SearchGUI s = new SearchGUI();
         s.createGUI();
-        s.decodeArgs(args);
+//        s.decodeArgs(args);
+        s.dirNames.add("data");
+        System.out.println("before index");
         s.index();
+        System.out.println("after index");
     }
 
 }
