@@ -5,7 +5,7 @@ Given these issues, our goal is to generate  realistic search engine query logs 
 In this project, we aim to build a tool that its input is a corpus containing a list of documents for general or specific domains. The tool will generate query logs based on this input corpus that follows real-world search engine query log characteristics. 
 
 
-## Collaborators
+## Contributors
 
-Amirhossein Aleyasen 
-Chen Zhang
+- Amirhossein Aleyasen (aleyase2@illinois.edu)
+- Chen Zhang (czhang49@illinois.edu)
