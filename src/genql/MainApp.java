@@ -7,6 +7,7 @@ package genql;
 
 import java.io.File;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  *
@@ -14,15 +15,31 @@ import java.util.LinkedList;
  */
 public class MainApp {
 
-    public static void main(String[] args) {
+    public static void generateGoldStandard() {
         MainApp m = new MainApp();
         m.dirNames.add("data/dblp");
         m.indexTSVFile();
-        m.search("the combination of flit buffer flow control methods and latency insensitive protocols is an effective solution for networks on chip noc since they both rely on backpressure the two techniques are easy to combine while offering complementary advantages low complexity of router design and the ability to cope with long communication channels via automatic wire pipelining we study various alternative implementations of this idea by considering the combination of three different types of flit buffer flow control methods and two different classes of channel repeaters based respectively on flip flops and relay stations we characterize the area and performance of the two most promising alternative implementations for nocs by completing the rtl design and logic synthesis of the repeaters and routers for different channel parallelisms finally we derive high level abstractions of our circuit designs and we use them to perform system level simulations under various scenarios for two distinct noc topologies and various applications based on our comparative analysis and experimental results we propose noc design approach that combines the reduction of the router queues to minimum size with the distribution of flit buffering onto the channels this approach provides precious flexibility during the physical design phase for many nocs particularly in those systems on chip that must be designed to meet tight constraint on the target clock frequency");
-        boolean[] feedback = new boolean[]{false, true, false};
-        m.relevanceFeedbackSearch(feedback);
-        feedback = new boolean[]{false, false, true};
-        m.relevanceFeedbackSearch(feedback);
+        final List<String> qs = IOUtils.readFileLineByLine("data/queries.txt", false);
+        int index = 1;
+        for (String q : qs) {
+            final String result = m.search(q);
+            IOUtils.writeDataIntoFile(result, "data/results/" + (index++) + ".txt");
+        }
+    }
+
+    public static void main(String[] args) {
+        generateGoldStandard();
+    }
+
+    public static void main2(String[] args) {
+        MainApp m = new MainApp();
+        m.dirNames.add("data/dblp");
+        m.indexTSVFile();
+        m.search("data integration for semi structured data");
+//        boolean[] feedback = new boolean[]{false, true, false};
+//        m.relevanceFeedbackSearch(feedback);
+//        feedback = new boolean[]{false, false, true};
+//        m.relevanceFeedbackSearch(feedback);
     }
     /**
      * The indexer creating the search index.
@@ -65,7 +82,7 @@ public class MainApp {
      */
     Object indexLock = new Object();
 
-    public void search(String querytext) {
+    public String search(String querytext) {
         String queryString = SimpleTokenizer.normalize(querytext);
         query = new Query(queryString);
         // Search and print results. Access to the index is synchronized since
@@ -80,9 +97,9 @@ public class MainApp {
         }
         StringBuffer buf = new StringBuffer();
         if (results != null) {
-            buf.append("Found " + results.size() + " matching document(s)\n\n");
+            System.out.println("Found " + results.size() + " matching document(s)\n\n");
             for (int i = 0; i < results.size(); i++) {
-                buf.append(" " + i + ". ");
+                buf.append(i + "\t");
                 String filename = indexer.index.docIDs.get("" + results.get(i).docID);
                 if (filename == null) {
                     buf.append("" + results.get(i).docID);
@@ -90,7 +107,7 @@ public class MainApp {
                     buf.append(filename);
                 }
                 if (queryType == Index.RANKED_QUERY) {
-                    buf.append("   " + String.format("%.5f", results.get(i).score));
+                    buf.append("\t" + String.format("%.5f", results.get(i).score));
                 }
                 buf.append("\n");
             }
@@ -98,6 +115,7 @@ public class MainApp {
             buf.append("Found 0 matching document(s)\n\n");
         }
         System.out.println(buf);
+        return buf.toString();
     }
 
     public void relevanceFeedbackSearch(boolean[] docIsRelevant) {

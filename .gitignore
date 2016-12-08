@@ -19,7 +19,6 @@ out
 nbproject/
 
 cache/
-data/
 testCache/*
 test/*
 build/
