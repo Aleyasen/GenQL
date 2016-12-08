@@ -6,7 +6,6 @@
 package genql;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.LinkedList;
 
 /**
@@ -17,9 +16,9 @@ public class MainApp {
 
     public static void main(String[] args) {
         MainApp m = new MainApp();
-        m.dirNames.add("data/sample");
-        m.index();
-        m.search("obama");
+        m.dirNames.add("data/dblp");
+        m.indexTSVFile();
+        m.search("the combination of flit buffer flow control methods and latency insensitive protocols is an effective solution for networks on chip noc since they both rely on backpressure the two techniques are easy to combine while offering complementary advantages low complexity of router design and the ability to cope with long communication channels via automatic wire pipelining we study various alternative implementations of this idea by considering the combination of three different types of flit buffer flow control methods and two different classes of channel repeaters based respectively on flip flops and relay stations we characterize the area and performance of the two most promising alternative implementations for nocs by completing the rtl design and logic synthesis of the repeaters and routers for different channel parallelisms finally we derive high level abstractions of our circuit designs and we use them to perform system level simulations under various scenarios for two distinct noc topologies and various applications based on our comparative analysis and experimental results we propose noc design approach that combines the reduction of the router queues to minimum size with the distribution of flit buffering onto the channels this approach provides precious flexibility during the physical design phase for many nocs particularly in those systems on chip that must be designed to meet tight constraint on the target clock frequency");
         boolean[] feedback = new boolean[]{false, true, false};
         m.relevanceFeedbackSearch(feedback);
         feedback = new boolean[]{false, false, true};
@@ -152,6 +151,25 @@ public class MainApp {
                 for (int i = 0; i < dirNames.size(); i++) {
                     File dokDir = new File(dirNames.get(i));
                     indexer.processFiles(dokDir);
+                }
+                System.out.println("Saving popular entries, please wait...");
+                indexer.sync_indexes();
+                indexer.index.indexingOver();
+                indexer.bigram_index.indexingOver();
+            }
+            System.out.println("Done!");
+        }
+    }
+
+    private void indexTSVFile() {
+        synchronized (indexLock) {
+            System.out.println("Importing index, please wait...");
+            if (!indexer.index.importIndex()) {
+                System.out.println("Indexing, please wait...");
+                System.out.println(dirNames);
+                for (int i = 0; i < dirNames.size(); i++) {
+                    File dokDir = new File(dirNames.get(i));
+                    indexer.processTSVFile(dokDir);
                 }
                 System.out.println("Saving popular entries, please wait...");
                 indexer.sync_indexes();

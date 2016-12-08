@@ -1,6 +1,7 @@
 package genql;
 
 import java.io.*;
+import java.util.List;
 
 /**
  * Processes a directory structure and indexes all text files.
@@ -86,6 +87,45 @@ public class Indexer {
                     reader.close();
                 } catch (IOException e) {
                     e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public void processTSVFile(File f) {
+        // do not try to index fs that cannot be read
+        if (f.canRead()) {
+            if (f.isDirectory()) {
+                String[] fs = f.list();
+                // an IO error could occur
+                if (fs != null) {
+                    for (int i = 0; i < fs.length; i++) {
+                        processTSVFile(new File(f, fs[i]));
+                    }
+                }
+            } else {
+                final List<String> lines = IOUtils.readFileLineByLine(f.getAbsolutePath(), false);
+                for (String line : lines) {
+                    //System.err.println( "Indexing " + f.getPath() );
+                    // First register the document and get a docID
+                    int docID = generateDocID();
+                    index.docIDs.put("" + docID, f.getPath() + ":" + docID);
+                    try {
+                        Reader reader = new StringReader(line);
+
+                        genql.SimpleTokenizer tok = new genql.SimpleTokenizer(reader);
+                        int offset = 0;
+                        while (tok.hasMoreTokens()) {
+                            String token = tok.nextToken();
+                            insertIntoIndex(docID, token, offset++);
+                        }
+                        index.docLengths.put("" + docID, offset);
+                        index.nextDoc();
+                        reader.close();
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }
