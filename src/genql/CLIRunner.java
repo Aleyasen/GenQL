@@ -5,6 +5,7 @@
  */
 package genql;
 
+import java.io.File;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -62,6 +63,10 @@ public class CLIRunner {
 
             if (isGen) {
                 MainApp.gen(corpusDir, generatedQueryFile, qcount);
+            } else if (isEval) {
+                final String intermediateResults = corpusDir + "/temp";
+                new File(intermediateResults).mkdir();
+                MainApp.eval(corpusDir, generatedQueryFile, groundTruthQueryFile, intermediateResults);
             }
         } catch (Exception ex) {
             ex.printStackTrace();
