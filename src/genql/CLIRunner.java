@@ -34,16 +34,13 @@ import org.xml.sax.SAXException;
  */
 public class CLIRunner {
 
-    private static boolean serializeMapping = false;
-    private static String mappingFilename;
-    private static String tdbDirectory;
-    private static String domain;
-    private static String dirLocation;
-    private static String fileLocation;
-    private static String steps;
-    private static DocumentBuilder builder;
-    private static String fileType;
+    private static boolean isEval = false;
+    private static boolean isGen = false;
 
+    private static String corpusDir;
+    private static String outputFile;
+    private static String groundTruthQueryFile;
+    private static String generatedQueryFile;
 
     public static void main(String[] args) {
         Options options = setupOptions();
@@ -53,115 +50,29 @@ public class CLIRunner {
                 System.out.println(args[i]);
             }
             CommandLine line = parser.parse(options, args);
-            if (line.hasOption('t')) {
-                fileType = line.getOptionValue('t');
-            } else {
-                fileType = XML;
+            if (line.hasOption('e')) {
+                isEval = true;
             }
-            if (line.hasOption('s')) {
-                steps = line.getOptionValue('s');
-                steps = "B" + steps;
-            } else {
-                steps = "BDIOFK";
-            }
-            if (line.hasOption('o')) {
-                tdbDirectory = line.getOptionValue('o');
-                File d = new File(tdbDirectory);
-                if (!d.exists() || !d.isDirectory()) {
-                    throw new Exception("TDB directory does not exist, please create.");
-                }
-            }
-            if (line.hasOption('h')) {
-                domain = line.getOptionValue('h');
-                try {
-                    URL url = new URL(domain);
-                } catch (MalformedURLException ex) {
-                    throw new Exception("The domain name is ill-formed");
-                }
-            } else {
-                domain = "http://xcurator.com";
-            }
-            if (line.hasOption('m')) {
-                serializeMapping = true;
-                mappingFilename = line.getOptionValue('m');
+            if (line.hasOption('g')) {
+                isGen = true;
             }
             if (line.hasOption('d')) {
-                dirLocation = line.getOptionValue('d');
-                inputStreams = new ArrayList<>();
-                final List<String> files = Util.getFiles(dirLocation);
-                for (String inputfile : files) {
-                    File f = new File(inputfile);
-                    if (f.isFile() && f.exists()) {
-                        System.out.println("Adding document to mapping discoverer: " + inputfile);
-                        inputStreams.add(new FileInputStream(f));
-                    } // If it is a URL download link for the document from SEC
-                    else if (inputfile.startsWith("http") && inputfile.contains("://")) {
-                        // Download
-                        System.out.println("Adding remote document to mapping discoverer: " + inputfile);
-                        try {
-                            URL url = new URL(inputfile);
-                            InputStream remoteDocumentStream = url.openStream();
-                            inputStreams.add(remoteDocumentStream);
-                        } catch (MalformedURLException ex) {
-                            throw new Exception("The document URL is ill-formed: " + inputfile);
-                        } catch (IOException ex) {
-                            throw new Exception("Error in downloading remote document: " + inputfile);
-                        }
-                    } else {
-                        throw new Exception("Cannot open XBRL document: " + f.getName());
-                    }
-                }
+                corpusDir = line.getOptionValue('d');
+            }
+            if (line.hasOption('o')) {
+                outputFile = line.getOptionValue('o');
+            }
+            if (line.hasOption('g')) {
+                groundTruthQueryFile = line.getOptionValue('g');
             }
 
-            if (line.hasOption('f')) {
-                fileLocation = line.getOptionValue('f');
-                inputStreams = new ArrayList<>();
-                File f = new File(fileLocation);
-                if (f.isFile() && f.exists()) {
-                    System.out.println("Adding document to mapping discoverer: " + fileLocation);
-                    inputStreams.add(new FileInputStream(f));
-                } // If it is a URL download link for the document from SEC
-                else if (fileLocation.startsWith("http") && fileLocation.contains("://")) {
-                    // Download
-                    System.out.println("Adding remote document to mapping discoverer: " + fileLocation);
-                    try {
-                        URL url = new URL(fileLocation);
-                        InputStream remoteDocumentStream = url.openStream();
-                        inputStreams.add(remoteDocumentStream);
-                    } catch (MalformedURLException ex) {
-                        throw new Exception("The document URL is ill-formed: " + fileLocation);
-                    } catch (IOException ex) {
-                        throw new Exception("Error in downloading remote document: " + fileLocation);
-                    }
-                } else {
-
-                    throw new Exception("Cannot open XBRL document: " + f.getName());
-                }
-
+            if (line.hasOption('q')) {
+                generatedQueryFile = line.getOptionValue('q');
             }
-
-            setupDocumentBuilder();
-            RdfFactory rdfFactory = new RdfFactory(new RunConfig(domain));
-            List<Document> documents = new ArrayList<>();
-            for (InputStream inputStream : inputStreams) {
-                Document dataDocument = null;
-                if (fileType.equals(JSON)) {
-                    String json = IOUtils.toString(inputStream);
-                    final String xml = Util.json2xml(json);
-                    FileUtils.writeStringToFile(new File(fileLocation + ".xml"), xml);
-                    final InputStream xmlInputStream = IOUtils.toInputStream(xml);
-                    dataDocument = createDocument(xmlInputStream);
-                } else {
-                    dataDocument = createDocument(inputStream);
-                }
-                documents.add(dataDocument);
+            if (line.hasOption('h')) {
+                printHelpAndExit(options);
             }
-            if (serializeMapping) {
-                System.out.println("Mapping file will be saved to: " + new File(mappingFilename).getAbsolutePath());
-                rdfFactory.createRdfs(documents, tdbDirectory, mappingFilename, steps);
-            } else {
-                rdfFactory.createRdfs(documents, tdbDirectory, steps);
-            }
+            
         } catch (Exception ex) {
             ex.printStackTrace();
             System.err.println("Unexpected exception: " + ex.getMessage());
@@ -177,12 +88,12 @@ public class CLIRunner {
         options.addOption("o", "output", true, "Output file for the generated queries");
         options.addOption("g", "gtruth", true, "The file for the ground-truth query log (only for evaluation). Each line of the file contains a query");
         options.addOption("q", "query", true, "The file for the generated queries using -g option (only for evaluation)");
+        options.addOption("h", "help", false, "help");
 
 //        options.addOption("o", "output", true, "Output file/directory path");
 //        options.addOption("o", "output", true, "Output file/directory path");
         return options;
     }
-
 
     private static void printHelpAndExit(Options options) {
         HelpFormatter formatter = new HelpFormatter();
