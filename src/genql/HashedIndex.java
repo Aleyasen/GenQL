@@ -34,8 +34,8 @@ public class HashedIndex extends Index {
     private static final boolean GLOBAL_CACHE = false;
     private static final String CACHE_PATH = "./cache/";
 
-    private static final int TF_IDF_WEIGHT = 1;
-    private static final int PAGERANK_WEIGHT = 30;
+    private static final int TF_IDF_WEIGHT = 5;
+    private static final int PAGERANK_WEIGHT = 5;
 
     /**
      * Each X documents, words below popularity threshold (Y %) are removed from
@@ -93,7 +93,7 @@ public class HashedIndex extends Index {
      * scores are kept in memory and used by ranked retrieval Integer.MAX_VALUE
      * to disable
      */
-    private static final int RANKED_DOC_PER_WORD = 20;
+    private static final int RANKED_DOC_PER_WORD = Integer.MAX_VALUE;
 
     /**
      * Inserts this token in the index.

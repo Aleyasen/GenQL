@@ -20,8 +20,8 @@ public class Query {
     public genql.Vector vector = null;
 
     //Rocchio's algorithm parameters
-    private static final double ALPHA = 0.5;
-    private static final double BETA = 0.5;
+    private static final double ALPHA = 0.8;
+    private static final double BETA = 0.2;
     // We use gamma = 0 since no documents are marked as non relevant (positive feedback only)
 
     /**
@@ -54,6 +54,8 @@ public class Query {
             terms.add(ts.get(i).term);
             vector.set(i, ts.get(i).score);
         }
+        System.out.println("Terms in Refine:");
+        System.out.println(terms);
     }
 
     /**
@@ -80,7 +82,8 @@ public class Query {
      */
     public void relevanceFeedback(genql.PostingsList results, boolean[] docIsRelevant, genql.Indexer indexer) {
         System.out.println("before Rocchio");
-        System.out.println(this);
+        System.out.println(results);
+        System.out.println(docIsRelevant);
         // results contain the ranked list from the current search
         // docIsRelevant contains the users feedback on which of the 10 first hits are relevant
         if (!(indexer.index instanceof genql.HashedIndex)) {
@@ -147,8 +150,8 @@ public class Query {
 
         this.vector.normalize();
         System.out.println("after Rocchio");
-        System.out.println(this);
-        refine(10);
+//        System.out.println(this);
+        refine(14);
         System.out.println("after Refine");
         System.out.println(this);
     }

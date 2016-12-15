@@ -7,6 +7,7 @@ package genql;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -34,19 +35,27 @@ public class MainApp {
 
     public static void main(String[] args) {
         MainApp m = new MainApp();
+        String generateQuerieFile = "data/newQ.txt";
         m.dirNames.add("data/dblp");
         m.indexTSVFile();
         int index = 1;
         int top = 10;
         final List<String> qs = IOUtils.readFileLineByLine("data/queries.txt", false);
-        String initialQuery = "it";
+        String initialQuery = "the";
         for (int i = 0; i < qs.size(); i++) {
 
-            final List<QueryResult> ranking = m.search(initialQuery);
+            List<QueryResult> ranking = m.search(initialQuery);
+            System.out.println(ranking.size());
             final List<QueryResult> topAns = QueryResult.readQueryResultFile("data/results/" + (index++) + ".txt", top);
-            boolean[] feedback = generateFeedbackArray(ranking, topAns);
-            m.relevanceFeedbackSearch(feedback);
-            break;
+            for (int iter = 0; iter < 7; iter++) {
+                boolean[] feedback = generateFeedbackArray(ranking, topAns);
+                System.out.println("Feedbak:");
+//            System.out.println(Arrays.toString(feedback));
+                printRanks(feedback);
+                ranking = m.relevanceFeedbackSearch(feedback);
+            }
+            String query_string = generateQueryString(m.query, 5);
+            IOUtils.writeDataIntoFile(query_string + "\n", generateQuerieFile, true);
 
         }
 
@@ -78,6 +87,30 @@ public class MainApp {
             }
         }
         return feedback;
+    }
+
+    private static void printRanks(boolean[] arr) {
+        double score = 0;
+        for (int i = 0; i < arr.length; i++) {
+            if (arr[i] == true) {
+                System.out.println("rank " + i);
+                score += 1.00 / (i + 1);
+            }
+        }
+        System.out.println("array size:" + arr.length + " score=" + score);
+        System.out.println();
+    }
+
+    private static String generateQueryString(Query query, int top) {
+        String str = "";
+        int index = top;
+        for (String term : query.terms) {
+            if (index-- == 0) {
+                break;
+            }
+            str += term + " ";
+        }
+        return str.trim();
     }
 
     /**
@@ -167,7 +200,8 @@ public class MainApp {
         return qrlist;
     }
 
-    public void relevanceFeedbackSearch(boolean[] docIsRelevant) {
+    public List<QueryResult> relevanceFeedbackSearch(boolean[] docIsRelevant) {
+        List<QueryResult> qrlist = new ArrayList<>();
         // Check that a ranked search has been made prior to the relevance feedback
         StringBuffer buf = new StringBuffer();
         if ((results != null) && (queryType == Index.RANKED_QUERY)) {
@@ -188,20 +222,29 @@ public class MainApp {
             buf.append("Search after relevance feedback:\n");
             buf.append("Found " + results.size() + " matching document(s)\n\n");
             for (int i = 0; i < results.size(); i++) {
+                QueryResult qr = new QueryResult();
                 buf.append(" " + i + ". ");
+                qr.setRank(i);
                 String filename = indexer.index.docIDs.get("" + results.get(i).docID);
+                String resultItem;
                 if (filename == null) {
-                    buf.append("" + results.get(i).docID);
+                    resultItem = "" + results.get(i).docID;
+                    buf.append(resultItem);
                 } else {
                     buf.append(filename);
+                    resultItem = filename;
                 }
+                qr.setDoc(resultItem);
                 buf.append("   " + String.format("%.5f", results.get(i).score) + "\n");
+                qr.setScore(results.get(i).score);
+                qrlist.add(qr);
             }
         } else {
             buf.append("There was no returned ranked list to give feedback on.\n\n");
         }
         System.out.println("RelevenceFeedback Result#: " + results.size());
 //        System.out.println(buf);
+        return qrlist;
     }
 
     /* ----------------------------------------------- */
