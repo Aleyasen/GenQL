@@ -43,6 +43,7 @@ public class Query {
 
     public void refine(int topk) {
         List<TermScore> ts = new ArrayList();
+        topk = Math.min(topk, terms.size());
         for (int i = 0; i < terms.size(); i++) {
             ts.add(new TermScore(terms.get(i), vector.get(i)));
         }

@@ -6,6 +6,7 @@
 package genql;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -22,25 +23,63 @@ public class MainApp {
         final List<String> qs = IOUtils.readFileLineByLine("data/queries.txt", false);
         int index = 1;
         for (String q : qs) {
-            final String result = m.search(q);
-            IOUtils.writeDataIntoFile(result, "data/results/" + (index++) + ".txt");
+            final List<QueryResult> searchresult = m.search(q);
+            QueryResult.writeQueryResultFile(searchresult, "data/results/" + (index++) + ".txt");
         }
     }
 
-    public static void main(String[] args) {
+    public static void main4(String[] args) {
         generateGoldStandard();
     }
 
-    public static void main2(String[] args) {
+    public static void main(String[] args) {
         MainApp m = new MainApp();
         m.dirNames.add("data/dblp");
         m.indexTSVFile();
-        m.search("data integration for semi structured data");
+        int index = 1;
+        int top = 10;
+        final List<String> qs = IOUtils.readFileLineByLine("data/queries.txt", false);
+        String initialQuery = "it";
+        for (int i = 0; i < qs.size(); i++) {
+
+            final List<QueryResult> ranking = m.search(initialQuery);
+            final List<QueryResult> topAns = QueryResult.readQueryResultFile("data/results/" + (index++) + ".txt", top);
+            boolean[] feedback = generateFeedbackArray(ranking, topAns);
+            m.relevanceFeedbackSearch(feedback);
+            break;
+
+        }
+
+    }
+
+    public static void main5(String[] args) {
+        MainApp m = new MainApp();
+        m.dirNames.add("data/dblp");
+        m.indexTSVFile();
+        final List<QueryResult> ranking = m.search("data integration for semi structured data");
+        System.out.println(ranking);
 //        boolean[] feedback = new boolean[]{false, true, false};
 //        m.relevanceFeedbackSearch(feedback);
 //        feedback = new boolean[]{false, false, true};
 //        m.relevanceFeedbackSearch(feedback);
     }
+
+    private static boolean[] generateFeedbackArray(List<QueryResult> qresults, List<QueryResult> goldstandard) {
+        boolean[] feedback = new boolean[qresults.size()];
+        for (int i = 0; i < feedback.length; i++) {
+            feedback[i] = false;
+        }
+        for (int i = 0; i < feedback.length; i++) {
+            for (int j = 0; j < goldstandard.size(); j++) {
+                if (qresults.get(i).getDoc().equals(goldstandard.get(j).getDoc())) {
+                    feedback[i] = true;
+                    break;
+                }
+            }
+        }
+        return feedback;
+    }
+
     /**
      * The indexer creating the search index.
      */
@@ -82,7 +121,8 @@ public class MainApp {
      */
     Object indexLock = new Object();
 
-    public String search(String querytext) {
+    public List<QueryResult> search(String querytext) {
+        List<QueryResult> qrlist = new ArrayList<>();
         String queryString = SimpleTokenizer.normalize(querytext);
         query = new Query(queryString);
         // Search and print results. Access to the index is synchronized since
@@ -99,23 +139,32 @@ public class MainApp {
         if (results != null) {
             System.out.println("Found " + results.size() + " matching document(s)\n\n");
             for (int i = 0; i < results.size(); i++) {
+                QueryResult qr = new QueryResult();
+                qr.setRank(i);
                 buf.append(i + "\t");
                 String filename = indexer.index.docIDs.get("" + results.get(i).docID);
+                String resultItem;
                 if (filename == null) {
-                    buf.append("" + results.get(i).docID);
+                    resultItem = "" + results.get(i).docID;
+                    buf.append(resultItem);
                 } else {
-                    buf.append(filename);
+                    resultItem = filename;
+                    buf.append(resultItem);
                 }
+                qr.setDoc(resultItem);
                 if (queryType == Index.RANKED_QUERY) {
                     buf.append("\t" + String.format("%.5f", results.get(i).score));
+                    qr.setScore(results.get(i).score);
                 }
                 buf.append("\n");
+                qrlist.add(qr);
             }
         } else {
             buf.append("Found 0 matching document(s)\n\n");
         }
-        System.out.println(buf);
-        return buf.toString();
+        System.out.println("Result# : " + qrlist.size() + " , q=" + querytext);
+//        System.out.println(buf);
+        return qrlist;
     }
 
     public void relevanceFeedbackSearch(boolean[] docIsRelevant) {
@@ -151,7 +200,8 @@ public class MainApp {
         } else {
             buf.append("There was no returned ranked list to give feedback on.\n\n");
         }
-        System.out.println(buf);
+        System.out.println("RelevenceFeedback Result#: " + results.size());
+//        System.out.println(buf);
     }
 
     /* ----------------------------------------------- */
