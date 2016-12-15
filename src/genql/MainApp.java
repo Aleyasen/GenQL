@@ -17,39 +17,37 @@ import java.util.List;
  */
 public class MainApp {
 
-    public static void generateGoldStandard() {
+    public static void generateGoldStandard(String corpus, String groundTruthQueriesFile, String intermediateResultsDir) {
         MainApp m = new MainApp();
-        m.dirNames.add("data/dblp");
+        m.dirNames.add(corpus);
         m.indexTSVFile();
-        final List<String> qs = IOUtils.readFileLineByLine("data/queries.txt", false);
+        final List<String> qs = IOUtils.readFileLineByLine(groundTruthQueriesFile, false);
         int index = 1;
         for (String q : qs) {
             final List<QueryResult> searchresult = m.search(q);
-            QueryResult.writeQueryResultFile(searchresult, "data/results/" + (index++) + ".txt");
+            QueryResult.writeQueryResultFile(searchresult, intermediateResultsDir + "/" + (index++) + ".txt");
         }
-    }
-
-    public static void main4(String[] args) {
-        generateGoldStandard();
     }
 
     public static void main(String[] args) {
         gen("data/dblp", "data/newQ.txt", 100);
+        eval("data/dblp", "data/newQ.txt", "data/queries.txt", "data/results");
     }
 
-    public static void eval(String corpus, String generateQuerieFile, int numberOfQueries) {
+    public static void eval(String corpus, String generateQuerieFile, String groundTruthQueriesFile, String intermediateResultsDir) {
+        generateGoldStandard(corpus, groundTruthQueriesFile, intermediateResultsDir);
         MainApp m = new MainApp();
         m.dirNames.add(corpus);
         m.indexTSVFile();
         int index = 1;
         int top = 10;
-        final List<String> qs = IOUtils.readFileLineByLine("data/queries.txt", false);
+        final List<String> qs = IOUtils.readFileLineByLine(groundTruthQueriesFile, false);
         String initialQuery = "the";
         for (int i = 0; i < qs.size(); i++) {
 
             List<QueryResult> ranking = m.search(initialQuery);
             System.out.println(ranking.size());
-            final List<QueryResult> topAns = QueryResult.readQueryResultFile("data/results/" + (index++) + ".txt", top);
+            final List<QueryResult> topAns = QueryResult.readQueryResultFile(intermediateResultsDir + "/" + (index++) + ".txt", top);
             for (int iter = 0; iter < 7; iter++) {
                 boolean[] feedback = generateFeedbackArray(ranking, topAns);
                 System.out.println("Feedbak:");

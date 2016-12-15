@@ -25,6 +25,7 @@ public class CLIRunner {
     private static String outputFile;
     private static String groundTruthQueryFile;
     private static String generatedQueryFile;
+    private static int qcount;
 
     public static void main(String[] args) {
         Options options = setupOptions();
@@ -43,20 +44,25 @@ public class CLIRunner {
             if (line.hasOption('d')) {
                 corpusDir = line.getOptionValue('d');
             }
+            if (line.hasOption('n')) {
+                qcount = Integer.parseInt(line.getOptionValue('n'));
+            }
             if (line.hasOption('o')) {
                 outputFile = line.getOptionValue('o');
             }
             if (line.hasOption('g')) {
                 groundTruthQueryFile = line.getOptionValue('g');
             }
-
             if (line.hasOption('q')) {
                 generatedQueryFile = line.getOptionValue('q');
             }
             if (line.hasOption('h')) {
                 printHelpAndExit(options);
             }
-            
+
+            if (isGen) {
+                MainApp.gen(corpusDir, generatedQueryFile, qcount);
+            }
         } catch (Exception ex) {
             ex.printStackTrace();
             System.err.println("Unexpected exception: " + ex.getMessage());
@@ -70,6 +76,7 @@ public class CLIRunner {
         options.addOption("e", "eval", false, "Evaluate generated queries based on a ground-truth query log");
         options.addOption("d", "dir", true, "The directory for the corpus");
         options.addOption("o", "output", true, "Output file for the generated queries");
+        options.addOption("n", "count", true, "Numbers of queries to generate");
         options.addOption("g", "gtruth", true, "The file for the ground-truth query log (only for evaluation). Each line of the file contains a query");
         options.addOption("q", "query", true, "The file for the generated queries using -g option (only for evaluation)");
         options.addOption("h", "help", false, "help");
