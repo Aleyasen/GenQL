@@ -81,4 +81,14 @@ public class QueryResult {
         }
         IOUtils.writeDataIntoFile(sb.toString(), filepath);
     }
+
+    @Override
+    protected Object clone() {
+        QueryResult qr = new QueryResult();
+        qr.setDoc(this.doc);
+        qr.setRank(this.rank);
+        qr.setScore(this.score);
+        return qr;
+    }
+
 }

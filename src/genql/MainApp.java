@@ -34,9 +34,12 @@ public class MainApp {
     }
 
     public static void main(String[] args) {
+        gen("data/dblp", "data/newQ.txt", 100);
+    }
+
+    public static void eval(String corpus, String generateQuerieFile, int numberOfQueries) {
         MainApp m = new MainApp();
-        String generateQuerieFile = "data/newQ.txt";
-        m.dirNames.add("data/dblp");
+        m.dirNames.add(corpus);
         m.indexTSVFile();
         int index = 1;
         int top = 10;
@@ -47,6 +50,31 @@ public class MainApp {
             List<QueryResult> ranking = m.search(initialQuery);
             System.out.println(ranking.size());
             final List<QueryResult> topAns = QueryResult.readQueryResultFile("data/results/" + (index++) + ".txt", top);
+            for (int iter = 0; iter < 7; iter++) {
+                boolean[] feedback = generateFeedbackArray(ranking, topAns);
+                System.out.println("Feedbak:");
+//            System.out.println(Arrays.toString(feedback));
+                printRanks(feedback);
+                ranking = m.relevanceFeedbackSearch(feedback);
+            }
+            String query_string = generateQueryString(m.query, 5);
+            IOUtils.writeDataIntoFile(query_string + "\n", generateQuerieFile, true);
+
+        }
+
+    }
+
+    public static void gen(String corpus, String generateQuerieFile, int qcount) {
+        MainApp m = new MainApp();
+        m.dirNames.add(corpus);
+        m.indexTSVFile();
+        int top = 10;
+        String initialQuery = "the";
+        for (int i = 0; i < qcount; i++) {
+
+            List<QueryResult> ranking = m.search(initialQuery);
+            System.out.println(ranking.size());
+            final List<QueryResult> topAns = generatedRandomTopDocs(ranking, top);
             for (int iter = 0; iter < 7; iter++) {
                 boolean[] feedback = generateFeedbackArray(ranking, topAns);
                 System.out.println("Feedbak:");
@@ -89,6 +117,18 @@ public class MainApp {
         return feedback;
     }
 
+    private static List<QueryResult> generatedRandomTopDocs(List<QueryResult> qresults, int count) {
+        List<QueryResult> result = new ArrayList<QueryResult>();
+        final boolean[] docselector = randomDocSelect(qresults.size(), count);
+
+        for (int i = 0; i < docselector.length; i++) {
+            if (docselector[i] == true) {
+                result.add((QueryResult) qresults.get(i).clone());
+            }
+        }
+        return result;
+    }
+
     private static void printRanks(boolean[] arr) {
         double score = 0;
         for (int i = 0; i < arr.length; i++) {
@@ -111,6 +151,18 @@ public class MainApp {
             str += term + " ";
         }
         return str.trim();
+    }
+
+    private static boolean[] randomDocSelect(int resultSize, int count) {
+        boolean[] docselector = new boolean[resultSize];
+        for (int i = 0; i < docselector.length; i++) {
+            docselector[i] = false;
+        }
+        for (int i = 0; i < count; i++) {
+            int randInd = (int) Math.floor(Math.random() * resultSize);
+            docselector[randInd] = true;
+        }
+        return docselector;
     }
 
     /**
