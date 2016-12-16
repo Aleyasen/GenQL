@@ -17,7 +17,7 @@ In this project, we aim to build a tool that its input is a corpus containing a 
 git clone https://github.com/Aleyasen/GenQL.git
  ```
  
- ### Parameters
+### Parameters
 
 
 | Parameter         | Description                                                               |
@@ -26,13 +26,32 @@ git clone https://github.com/Aleyasen/GenQL.git
 | -e,--eval         | Evaluate generated queries based on a ground-truth query log                                                |
 | -g,--gen       | Generate search query log              |
 | -h,--help | Help |
-| -n,--count       | Numbers of queries to generate                                               |
+| -n,--count       | Numbers of queries to generate (default: 10)                                              |
 | -o,--output         | Output file for the generated queries                           |
 | -q,--query          | The file for the generated queries using -g option (only for evaluation)                                                |
 | -t,--gtruth        | The file for the ground-truth query log (only for evaluation). Each line of the file contains a query                                               |
 | -m,--min        | Minimum query length (default: 2)                                               |
 | -x,--max        | Maximum query length (default: 7)                                               |
 
+
+### Examples
+#### Example 1: Simple query generation
+```bash
+genql -g -h 1000 -d /opt/corpus -o /opt/out/gen.out
+```
+Generate 1000 queries from a corpus located on ```/opt/corpus```. The queries will store in file ```/opt/out/gen.out```. 
+
+#### Example 2: Query generation with specific min/max query length
+```basg
+genql -g -h 1000 -d /opt/corpus -m 3 -x 7 -o /opt/out/gen2.out
+```
+Generate 1000 queries from a corpus located on ```/opt/corpus```. The query lengths will between 3 to 7 (inclusive). The queries will store in file ```/opt/out/gen2.out```. 
+
+#### Example 3: Evaluating the generated queries
+```bash
+genql -e -d /opt/corpus -q /opt/out/gen.out -t /opt/out/gtruth.txt 
+```
+Generate queries from a corpus located on ```/opt/corpus``` (number of generated queries is equal to number of queries in ```/opt/out/gtruth.txt```). Store the generated queries in ```/opt/out/gen.out``` and compare them with ground truth queries in ```/opt/out/gtruth.txt```
 
 
 ## Contributors
