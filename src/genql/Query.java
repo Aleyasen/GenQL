@@ -54,8 +54,8 @@ public class Query {
             terms.add(ts.get(i).term);
             vector.set(i, ts.get(i).score);
         }
-        System.out.println("Terms in Refine:");
-        System.out.println(terms);
+//        System.out.println("Terms in Refine:");
+//        System.out.println(terms);
     }
 
     /**
@@ -81,9 +81,9 @@ public class Query {
      * updated to match the user preferences (Rocchio's algorithm)
      */
     public void relevanceFeedback(genql.PostingsList results, boolean[] docIsRelevant, genql.Indexer indexer) {
-        System.out.println("before Rocchio");
-        System.out.println(results);
-        System.out.println(docIsRelevant);
+//        System.out.println("before Rocchio");
+//        System.out.println(results);
+//        System.out.println(docIsRelevant);
         // results contain the ranked list from the current search
         // docIsRelevant contains the users feedback on which of the 10 first hits are relevant
         if (!(indexer.index instanceof genql.HashedIndex)) {
@@ -149,11 +149,11 @@ public class Query {
         this.vector = new genql.Vector(array);
 
         this.vector.normalize();
-        System.out.println("after Rocchio");
+//        System.out.println("after Rocchio");
 //        System.out.println(this);
         refine(14);
-        System.out.println("after Refine");
-        System.out.println(this);
+//        System.out.println("after Refine");
+//        System.out.println(this);
     }
 
     public String toString() {

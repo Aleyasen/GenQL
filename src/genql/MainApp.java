@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 
 /**
  *
@@ -35,6 +36,10 @@ public class MainApp {
     }
 
     public static void eval(String corpus, String generateQuerieFile, String groundTruthQueriesFile, String intermediateResultsDir) {
+        eval(corpus, generateQuerieFile, groundTruthQueriesFile, intermediateResultsDir, 2, 7);
+    }
+
+    public static void eval(String corpus, String generateQuerieFile, String groundTruthQueriesFile, String intermediateResultsDir, int min_query_len, int max_query_len) {
         generateGoldStandard(corpus, groundTruthQueriesFile, intermediateResultsDir);
         MainApp m = new MainApp();
         m.dirNames.add(corpus);
@@ -46,16 +51,16 @@ public class MainApp {
         for (int i = 0; i < qs.size(); i++) {
 
             List<QueryResult> ranking = m.search(initialQuery);
-            System.out.println(ranking.size());
+//            System.out.println(ranking.size());
             final List<QueryResult> topAns = QueryResult.readQueryResultFile(intermediateResultsDir + "/" + (index++) + ".txt", top);
             for (int iter = 0; iter < 7; iter++) {
                 boolean[] feedback = generateFeedbackArray(ranking, topAns);
-                System.out.println("Feedbak:");
+//                System.out.println("Feedbak:");
 //            System.out.println(Arrays.toString(feedback));
-                printRanks(feedback);
+               // printRanks(feedback);
                 ranking = m.relevanceFeedbackSearch(feedback);
             }
-            String query_string = generateQueryString(m.query, 5);
+            String query_string = generateQueryString(m.query, min_query_len, max_query_len);
             IOUtils.writeDataIntoFile(query_string + "\n", generateQuerieFile, true);
 
         }
@@ -63,6 +68,10 @@ public class MainApp {
     }
 
     public static void gen(String corpus, String generateQuerieFile, int qcount) {
+        gen(corpus, generateQuerieFile, qcount, 2, 7);
+    }
+
+    public static void gen(String corpus, String generateQuerieFile, int qcount, int min_query_len, int max_query_len) {
         MainApp m = new MainApp();
         m.dirNames.add(corpus);
         m.indexTSVFile();
@@ -71,16 +80,16 @@ public class MainApp {
         for (int i = 0; i < qcount; i++) {
 
             List<QueryResult> ranking = m.search(initialQuery);
-            System.out.println(ranking.size());
+//            System.out.println(ranking.size());
             final List<QueryResult> topAns = generatedRandomTopDocs(ranking, top);
             for (int iter = 0; iter < 7; iter++) {
                 boolean[] feedback = generateFeedbackArray(ranking, topAns);
-                System.out.println("Feedbak:");
+//                System.out.println("Feedbak:");
 //            System.out.println(Arrays.toString(feedback));
-                printRanks(feedback);
+               // printRanks(feedback);
                 ranking = m.relevanceFeedbackSearch(feedback);
             }
-            String query_string = generateQueryString(m.query, 5);
+            String query_string = generateQueryString(m.query, min_query_len, max_query_len);
             IOUtils.writeDataIntoFile(query_string + "\n", generateQuerieFile, true);
 
         }
@@ -92,7 +101,7 @@ public class MainApp {
         m.dirNames.add("data/dblp");
         m.indexTSVFile();
         final List<QueryResult> ranking = m.search("data integration for semi structured data");
-        System.out.println(ranking);
+//        System.out.println(ranking);
 //        boolean[] feedback = new boolean[]{false, true, false};
 //        m.relevanceFeedbackSearch(feedback);
 //        feedback = new boolean[]{false, false, true};
@@ -138,10 +147,12 @@ public class MainApp {
         System.out.println("array size:" + arr.length + " score=" + score);
         System.out.println();
     }
+    static Random rn = new Random();
 
-    private static String generateQueryString(Query query, int top) {
+    private static String generateQueryString(Query query, int min, int max) {
+        int qlen = rn.nextInt(max - min + 1) + min;
         String str = "";
-        int index = top;
+        int index = qlen;
         for (String term : query.terms) {
             if (index-- == 0) {
                 break;
@@ -220,7 +231,7 @@ public class MainApp {
         }
         StringBuffer buf = new StringBuffer();
         if (results != null) {
-            System.out.println("Found " + results.size() + " matching document(s)\n\n");
+//            System.out.println("Found " + results.size() + " matching document(s)\n\n");
             for (int i = 0; i < results.size(); i++) {
                 QueryResult qr = new QueryResult();
                 qr.setRank(i);
@@ -245,7 +256,7 @@ public class MainApp {
         } else {
             buf.append("Found 0 matching document(s)\n\n");
         }
-        System.out.println("Result# : " + qrlist.size() + " , q=" + querytext);
+//        System.out.println("Result# : " + qrlist.size() + " , q=" + querytext);
 //        System.out.println(buf);
         return qrlist;
     }
@@ -292,7 +303,7 @@ public class MainApp {
         } else {
             buf.append("There was no returned ranked list to give feedback on.\n\n");
         }
-        System.out.println("RelevenceFeedback Result#: " + results.size());
+//        System.out.println("RelevenceFeedback Result#: " + results.size());
 //        System.out.println(buf);
         return qrlist;
     }
