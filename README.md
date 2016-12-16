@@ -28,8 +28,8 @@ git clone https://github.com/Aleyasen/GenQL.git
 | -h,--help | Help |
 | -n,--count       | Numbers of queries to generate (default: 10)                                              |
 | -o,--output         | Output file for the generated queries                           |
-| -q,--query          | The file for the generated queries using -g option (only for evaluation)                                                |
-| -t,--gtruth        | The file for the ground-truth query log (only for evaluation). Each line of the file contains a query                                               |
+| -q,--query          | The generated queries file (only for evaluation)                                                |
+| -t,--gtruth        | The ground-truth queries file (only for evaluation). Each line of the file contains a query                                               |
 | -m,--min        | Minimum query length (default: 2)                                               |
 | -x,--max        | Maximum query length (default: 7)                                               |
 
@@ -37,15 +37,15 @@ git clone https://github.com/Aleyasen/GenQL.git
 ### Examples
 #### Example 1: Simple query generation
 ```bash
-genql -g -h 1000 -d /opt/corpus -o /opt/out/gen.out
+genql -g -n 10 -d /opt/corpus -o /opt/out/gen.out
 ```
-Generate 1000 queries from a corpus located on ```/opt/corpus```. The queries will store in file ```/opt/out/gen.out```. 
+Generate 10 queries from a corpus located on ```/opt/corpus```. The queries will store in file ```/opt/out/gen.out```. 
 
 #### Example 2: Query generation with specific min/max query length
 ```basg
-genql -g -h 1000 -d /opt/corpus -m 3 -x 7 -o /opt/out/gen2.out
+genql -g -n 10 -d /opt/corpus -m 3 -x 7 -o /opt/out/gen2.out
 ```
-Generate 1000 queries from a corpus located on ```/opt/corpus```. The query lengths will between 3 to 7 (inclusive). The queries will store in file ```/opt/out/gen2.out```. 
+Generate 10 queries from a corpus located on ```/opt/corpus```. The query lengths will between 3 to 7 (inclusive). The queries will store in file ```/opt/out/gen2.out```. 
 
 #### Example 3: Evaluating the generated queries
 ```bash
